@@ -1,172 +1,228 @@
-# Maritime Distress Alert & Rescue Tracking System Backend
+# Maritime Distress Alert and Rescue Tracking System
 
-This repository contains the production-quality MVP backend for the student engineering project: **Maritime Distress Alert and Rescue Tracking System**.
+## Overview
+
+The Maritime Distress Alert and Rescue Tracking System is an IoT-based emergency response platform designed to improve the safety of fishermen and small vessels operating in coastal waters.
+
+The system enables boats to transmit their real-time location, distress alerts, and status updates through a combination of GPS, LoRa, GSM, MQTT, and web technologies. A centralized monitoring dashboard visualizes vessel locations, rescue missions, communication relay paths, and high-risk maritime zones in real time.
+
+---
+
+## Problem Statement
+
+Many fishing vessels operate in remote coastal regions where communication infrastructure is limited. During emergencies such as storms, equipment failures, collisions, or medical incidents, rescue authorities often face challenges in:
+
+* Locating distressed vessels quickly
+* Monitoring vessel movements in real time
+* Coordinating rescue operations efficiently
+* Maintaining communication in low-network areas
+
+This project aims to provide a reliable and scalable solution for maritime emergency monitoring and rescue coordination.
+
+---
+
+## Features
+
+### Vessel Tracking
+
+* Real-time GPS location tracking
+* Live vessel status monitoring
+* Dynamic map visualization
+
+### Distress Alert System
+
+* Emergency SOS transmission
+* Instant distress notifications
+* Priority alert handling
+
+### Rescue Coordination
+
+* Rescue boat assignment
+* Rescue route visualization
+* Mission status monitoring
+
+### Communication Network
+
+* MQTT-based message transport
+* LoRa relay communication support
+* GSM/GPRS connectivity
+
+### Risk Monitoring
+
+* Maritime risk heatmap
+* High-risk area identification
+* Incident monitoring dashboard
+
+---
 
 ## System Architecture
 
-```
-Boat Device (ESP32)
-      ↓ (LoRa)
-LoRa Mesh Network (SX1278)
-      ↓ (Serial)
-Gateway ESP32
-      ↓ (Wi-Fi / MQTT)
-MQTT Broker
-      ↓
-Node.js Backend (Express.js) ← Socket.IO → React Dashboard
-      ↓
-PostgreSQL Database (Sequelize ORM)
-```
+### Hardware Layer
 
-**GSM Fallback (SIM900A):**
-If the LoRa Mesh connection fails or is unavailable, the boat hardware falls back to GSM, posting GPS distress payloads directly to the backend's HTTP fallback endpoint.
+* ESP32 Microcontroller
+* Neo-6M GPS Module
+* SX1278 LoRa Module
+* SIM900A GSM/GPRS Module
+
+### Communication Layer
+
+* LoRa
+* GSM/GPRS
+* MQTT Protocol
+* WebSockets
+
+### Backend Layer
+
+* Node.js
+* Express.js
+* Socket.IO
+* MQTT.js
+
+### Frontend Layer
+
+* React
+* Vite
+* React Leaflet
+* Leaflet Heatmap
+
+### Database Layer
+
+* PostgreSQL
+* Sequelize ORM
 
 ---
 
-## Directory Structure
+## Technology Stack
 
-```
-├── migrations/                # Database schema migrations
-│   └── 20260527000000-create-tables.js
-├── scripts/                   # Seeding and mock simulation utilities
-│   ├── seed.js
-│   └── mock-mqtt-publisher.js
+| Category      | Technologies                        |
+| ------------- | ----------------------------------- |
+| Frontend      | React, Vite, React Leaflet, Leaflet |
+| Backend       | Node.js, Express.js, Socket.IO      |
+| Database      | PostgreSQL, Sequelize               |
+| Communication | MQTT, WebSockets, LoRa, GSM         |
+| Hardware      | ESP32, Neo-6M GPS, SX1278, SIM900A  |
+
+---
+
+## Project Structure
+
+```text
+maritime-project/
+│
+├── maritime-dashboard/
+│   ├── src/
+│   └── public/
+│
+├── migrations/
+├── scripts/
 ├── src/
-│   ├── config/
-│   │   └── database.js        # Sequelize ORM configuration
-│   ├── controllers/           # API controllers (Boats, Distress, Rescue, GSM, Analytics)
-│   ├── middleware/            # Centralized error handler and validation
-│   ├── models/                # Sequelize database models
-│   ├── mqtt/
-│   │   └── mqtt.client.js     # Subscribes to MQTT and stores telemetry
-│   ├── routes/                # REST endpoints routing
-│   ├── services/              # Core business services (analytics, heatmap calculation)
-│   ├── sockets/
-│   │   └── socket.service.js  # Real-time WebSocket emitter
-│   ├── app.js                 # Express Application setup
-│   └── server.js              # Server entry point
-├── .env.example               # Example env config template
-├── .env                       # Local environment secrets
-├── package.json               # Package dependencies & scripts
-└── README.md                  # This documentation file
+│
+├── package.json
+├── README.md
+└── .gitignore
 ```
 
----
+## Installation
 
-## Prerequisites
+### Clone Repository
 
-- **Node.js** (v18+ recommended)
-- **PostgreSQL** running locally or remotely
-- **MQTT Broker** (e.g. Mosquitto, EMQX, or a public/free broker for testing like HiveMQ/test.mosquitto.org)
+```bash
+git clone <repository-url>
+cd maritime-project
+```
 
----
+### Install Backend Dependencies
 
-## Getting Started
-
-### 1. Installation
-Clone the repository and install dependencies:
 ```bash
 npm install
 ```
 
-### 2. Configuration
-Copy the `.env.example` file to `.env`:
+### Install Frontend Dependencies
+
 ```bash
-cp .env.example .env
-```
-Update `.env` with your database credentials and MQTT broker URL:
-```env
-PORT=5000
-DATABASE_URL=postgres://postgres:password@localhost:5432/maritime_distress
-MQTT_URL=mqtt://localhost:1883
+cd maritime-dashboard
+npm install
 ```
 
-*(Note: Create the `maritime_distress` database in PostgreSQL before proceeding.)*
+---
 
-### 3. Run Database Migrations & Seeds
-Initialize tables and populate sample mock boats:
+## Running the Application
+
+### Start MQTT Broker
+
 ```bash
-# Seed database (this will sync models and run seed data insertion)
-npm run db:seed
+mosquitto
 ```
 
-### 4. Start Server
-Run in development mode (with nodemon):
+### Start Backend Server
+
 ```bash
 npm run dev
 ```
 
-The server will automatically boot Express, authenticate & sync models with PostgreSQL, subscribe to the MQTT broker, and open a WebSocket channel on port `5000`.
+Backend runs on:
 
----
-
-## REST API Reference
-
-### 1. Boats (`/api/boats`)
-- `GET /api/boats` - Retrieve all boats.
-- `GET /api/boats/:id` - Retrieve a boat by primary key (UUID).
-- `POST /api/boats` - Create a boat.
-  - *Payload:* `{"boatId": "BOAT_12", "ownerName": "John Doe", "registrationNumber": "REG-12"}`
-- `PUT /api/boats/:id` - Update status/telemetry of a boat.
-  - *Payload:* `{"status": "DISTRESS", "lastLatitude": 9.28, "lastLongitude": 79.55}`
-- `DELETE /api/boats/:id` - Delete a boat.
-
-### 2. Locations (`/api/locations`)
-- `GET /api/locations/latest` - Fetch current active location coordinates for all boats.
-- `GET /api/locations/history/:boatId` - Fetch the historical trajectory of a specific boat (returns up to 100 entries).
-
-### 3. Distress (`/api/distress`)
-- `GET /api/distress` - Retrieve all distress history log.
-- `POST /api/distress` - Manually trigger/report a distress event.
-  - *Payload:* `{"boatId": "BOAT_12", "lat": 9.28, "lng": 79.55, "message": "SOS Engine Failure"}`
-- `PATCH /api/distress/:id/resolve` - Resolve a distress alert. (Updates boat status to `RESCUED`).
-
-### 4. Rescue Missions (`/api/rescue`)
-- `GET /api/rescue` - List all rescue missions.
-- `POST /api/rescue` - Assign a boat to rescue another.
-  - *Payload:* `{"distressBoatId": "BOAT_12", "rescueBoatId": "BOAT_01"}`
-- `PATCH /api/rescue/:id` - Update rescue mission status (`ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, `FAILED`).
-
-### 5. GSM Fallback Distress (`/api/gsm`)
-- `POST /api/gsm/distress` - Endpoint for SIM900A GSM Fallback messages.
-  - *Payload:* `{"boatId": "BOAT_12", "lat": 9.28, "lng": 79.55, "message": "SOS"}`
-  - *Actions:* Creates distress log, updates boat status to `DISTRESS`, broadcasts Socket.IO events.
-
-### 6. Analytics (`/api/analytics`)
-- `GET /api/analytics/heatmap` - Returns density grouped coordinates `[[lat, lng, intensity], ...]`.
-- `GET /api/analytics/distress-frequency` - Distress count breakdown by boat ID.
-- `GET /api/analytics/rescue-stats` - Count breakdown by rescue mission status.
-
----
-
-## Socket.IO Real-Time Events
-
-Dashboard clients can connect to `http://localhost:5000` via Socket.IO and listen to the following events:
-
-1. **`boatLocationUpdated`**: Emitted when a boat's GPS coordinate or telemetry gets updated.
-   - *Payload:* `{"boatId": "BOAT_12", "lastLatitude": 9.28, "lastLongitude": 79.55, "batteryLevel": 87, "signalStrength": 75, "status": "SAFE", "timestamp": "2026-05-27T15:00:00Z"}`
-2. **`distressAlert`**: Emitted when a distress alert is raised.
-   - *Payload:* DistressAlert database object.
-3. **`boatStatusChanged`**: Emitted when a boat's status updates.
-   - *Payload:* `{"boatId": "BOAT_12", "status": "DISTRESS"}`
-4. **`rescueMissionAssigned`**: Emitted when a rescue mission is started.
-   - *Payload:* RescueMission database object.
-5. **`rescueMissionCompleted`**: Emitted when a rescue mission is completed.
-   - *Payload:* RescueMission database object.
-6. **`relayPathUpdated`**: Emitted when a new mesh communication path is registered.
-   - *Payload:* RelayPath database object.
-
----
-
-## Testing & Simulating Hardware
-
-### Using the Mock Publisher
-To test the backend without real hardware, start the backend server, and then run the mock publisher script in a separate terminal:
-```bash
-node scripts/mock-mqtt-publisher.js
+```text
+http://localhost:5000
 ```
-This script will:
-1. Connect to the local MQTT broker.
-2. Stream simulated coordinates to `boats/location` every 5 seconds.
-3. Post a simulated distress SOS to `boats/distress` after 10 seconds.
-4. Broadcast relay mesh path updates to `boats/relay`.
+
+### Start Frontend
+
+```bash
+cd maritime-dashboard
+npm run dev
+```
+
+Frontend runs on:
+
+```text
+http://localhost:5173
+```
+
+---
+
+## MQTT Topics
+
+| Topic          | Purpose                         |
+| -------------- | ------------------------------- |
+| boats/location | Vessel location updates         |
+| boats/distress | Emergency distress alerts       |
+| boats/status   | Vessel status updates           |
+| boats/relay    | Communication relay information |
+
+---
+
+## Future Enhancements
+
+* AI-based route optimization
+* Weather integration
+* Satellite communication support
+* Mobile application
+* Predictive risk analysis
+* Automatic rescue recommendation system
+
+---
+
+## Applications
+
+* Coastal Safety Monitoring
+* Fisheries Management
+* Maritime Search and Rescue
+* Disaster Response Operations
+* Marine Traffic Monitoring
+
+---
+
+## Contributors
+
+Harshith Nambiar
+Sandeep Haridasu
+Harsha Anand
+Hemanth HS
+Harshit Gupta
+
+---
+
+## License
+
+This project is developed for academic and educational purposes.
