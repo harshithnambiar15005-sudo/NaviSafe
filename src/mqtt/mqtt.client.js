@@ -1,5 +1,7 @@
 const mqtt = require("mqtt");
-const db = require("../models");
+const boats = {};
+const distressAlerts = [];
+const relayPaths = [];
 const socketService = require("../sockets/socket.service");
 
 let client;
@@ -70,93 +72,66 @@ const initMQTT = () => {
  */
 async function handleLocationUpdate(payload) {
   const { boatId, lat, lng, battery, signal } = payload;
+
   if (!boatId) return;
-  console.log("DB OBJECT:");
-console.log(Object.keys(db));
-  // Find or create Boat
-  let [boat, created] = await db.Boat.findOrCreate({
-    where: { boatId },
-    defaults: {
-      ownerName: "Unknown Owner",
-      registrationNumber: `REG-${boatId}`,
-      status: "SAFE",
-      lastLatitude: lat,
-      lastLongitude: lng,
-      signalStrength: signal,
-      batteryLevel: battery
-    }
-  });
 
-  if (!created) {
-    boat.lastLatitude = lat;
-    boat.lastLongitude = lng;
-    if (battery !== undefined) boat.batteryLevel = battery;
-    if (signal !== undefined) boat.signalStrength = signal;
-    await boat.save();
-  }
-
-  // Create location history record
-  const history = await db.LocationHistory.create({
+  boats[boatId] = {
     boatId,
-    latitude: lat,
-    longitude: lng
-  });
+    lastLatitude: lat,
+    lastLongitude: lng,
+    batteryLevel: battery || 0,
+    signalStrength: signal || 0,
+    status: boats[boatId]?.status || "SAFE",
+    timestamp: new Date()
+  };
 
-  // Emit event via Socket.IO
   socketService.emitBoatLocationUpdated({
     boatId,
     lastLatitude: lat,
     lastLongitude: lng,
-    batteryLevel: boat.batteryLevel,
-    signalStrength: boat.signalStrength,
-    status: boat.status,
-    timestamp: history.timestamp
+    batteryLevel: battery || 0,
+    signalStrength: signal || 0,
+    status: boats[boatId].status,
+    timestamp: boats[boatId].timestamp
   });
-}
 
+  console.log(`Location updated for ${boatId}`);
+}
 /**
  * Handle boats/distress topic
  * Payload: { "boatId": "BOAT_12", "lat": 9.28, "lng": 79.55, "message": "SOS" }
  */
 async function handleDistressAlert(payload) {
   const { boatId, lat, lng, message } = payload;
+
   if (!boatId) return;
 
-  // Find or create Boat
-  let [boat, created] = await db.Boat.findOrCreate({
-    where: { boatId },
-    defaults: {
-      ownerName: "Unknown Owner",
-      registrationNumber: `REG-${boatId}`,
-      status: "DISTRESS",
-      lastLatitude: lat,
-      lastLongitude: lng
-    }
-  });
+  boats[boatId] = {
+    ...(boats[boatId] || {}),
+    boatId,
+    lastLatitude: lat,
+    lastLongitude: lng,
+    status: "DISTRESS"
+  };
 
-  // Update status and last location
-  const oldStatus = boat.status;
-  boat.status = "DISTRESS";
-  boat.lastLatitude = lat;
-  boat.lastLongitude = lng;
-  await boat.save();
-
-  // Create Distress Alert log entry
-  const alert = await db.DistressAlert.create({
+  const alert = {
     boatId,
     latitude: lat,
     longitude: lng,
-    message: message || "SOS"
+    message: message || "SOS",
+    timestamp: new Date()
+  };
+
+  distressAlerts.push(alert);
+
+  socketService.emitDistressAlert(alert);
+
+  socketService.emitBoatStatusChanged({
+    boatId,
+    status: "DISTRESS"
   });
 
-  // Emit events via Socket.IO
-  socketService.emitDistressAlert(alert);
-  if (oldStatus !== "DISTRESS") {
-    socketService.emitBoatStatusChanged({
-      boatId,
-      status: "DISTRESS"
-    });
-  }
+  console.log(`DISTRESS ALERT from ${boatId}`);
 }
 
 /**
@@ -165,24 +140,24 @@ async function handleDistressAlert(payload) {
  */
 async function handleStatusChange(payload) {
   const { boatId, status } = payload;
+
   if (!boatId || !status) return;
 
-  const boat = await db.Boat.findOne({ where: { boatId } });
-  if (!boat) {
-    console.warn(`Boat status change failed: Boat ${boatId} not found.`);
-    return;
-  }
-
-  const oldStatus = boat.status;
-  boat.status = status;
-  await boat.save();
-
-  if (oldStatus !== status) {
-    socketService.emitBoatStatusChanged({
+  if (!boats[boatId]) {
+    boats[boatId] = {
       boatId,
       status
-    });
+    };
+  } else {
+    boats[boatId].status = status;
   }
+
+  socketService.emitBoatStatusChanged({
+    boatId,
+    status
+  });
+
+  console.log(`Status changed: ${boatId} -> ${status}`);
 }
 
 /**
@@ -191,16 +166,21 @@ async function handleStatusChange(payload) {
  */
 async function handleRelayPath(payload) {
   const { source, relay, destination } = payload;
+
   if (!source || !relay || !destination) return;
 
-  const relayPath = await db.RelayPath.create({
-    sourceBoat: source,
-    relayBoat: relay,
-    destination
-  });
+  const relayPath = {
+    source,
+    relay,
+    destination,
+    timestamp: new Date()
+  };
 
-  // Emit event via Socket.IO
+  relayPaths.push(relayPath);
+
   socketService.emitRelayPathUpdated(relayPath);
+
+  console.log(`Relay path updated`);
 }
 
 module.exports = {
