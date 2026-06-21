@@ -4,7 +4,7 @@
 
 The Maritime Distress Alert and Rescue Tracking System is an IoT-based emergency response platform designed to improve the safety of fishermen and small vessels operating in coastal waters.
 
-The system enables boats to transmit their real-time location, distress alerts, and status updates through a combination of GPS, LoRa, GSM, MQTT, and web technologies. A centralized monitoring dashboard visualizes vessel locations, rescue missions, communication relay paths, and high-risk maritime zones in real time.
+The system enables boats to transmit their real-time location, distress alerts, and status updates through a combination of GPS, LoRa, MQTT, and web technologies. A centralized monitoring dashboard visualizes vessel locations, rescue missions, communication relay paths, and high-risk maritime zones in real time.
 
 ---
 
@@ -45,7 +45,6 @@ This project aims to provide a reliable and scalable solution for maritime emerg
 
 * MQTT-based message transport
 * LoRa relay communication support
-* GSM/GPRS connectivity
 
 ### Risk Monitoring
 
@@ -62,12 +61,10 @@ This project aims to provide a reliable and scalable solution for maritime emerg
 * ESP32 Microcontroller
 * Neo-6M GPS Module
 * SX1278 LoRa Module
-* SIM900A GSM/GPRS Module
 
 ### Communication Layer
 
 * LoRa
-* GSM/GPRS
 * MQTT Protocol
 * WebSockets
 
@@ -99,8 +96,8 @@ This project aims to provide a reliable and scalable solution for maritime emerg
 | Frontend      | React, Vite, React Leaflet, Leaflet |
 | Backend       | Node.js, Express.js, Socket.IO      |
 | Database      | PostgreSQL, Sequelize               |
-| Communication | MQTT, WebSockets, LoRa, GSM         |
-| Hardware      | ESP32, Neo-6M GPS, SX1278, SIM900A  |
+| Communication | MQTT, WebSockets, LoRa              |
+| Hardware      | ESP32, Neo-6M GPS, SX1278           |
 
 ---
 
@@ -213,15 +210,6 @@ http://localhost:5173
 
 ---
 
-## Contributors
-
-Harshith Nambiar
-Sandeep Haridasu
-Harsha Anand
-Hemanth HS
-Harshit Gupta
-
----
 
 ## License
 
